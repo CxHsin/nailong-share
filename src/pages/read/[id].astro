@@ -1,0 +1,42 @@
+---
+import { getCollection, render } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+export async function getStaticPaths() { return (await getCollection('notes')).map(note => ({ params: { id: note.id }, props: { note } })); }
+const { note } = Astro.props;
+const { Content, headings } = await render(note);
+const toc = headings.filter(h => h.depth <= 3);
+---
+<Layout title={note.data.title} description={note.data.description} pdf={note.data.pdf}>
+  <div class="reading-progress" aria-hidden="true"><span id="progress-bar"></span></div>
+  <main id="main" class="reading-layout">
+    <aside class="toc" aria-label="章节目录" data-pagefind-ignore><a class="back-link" href="/">← 返回所有内容</a><div class="toc-inner"><span class="eyebrow">ON THIS PAGE</span><nav>{toc.map(h => <a href={`#${h.slug}`} class:list={['toc-link', { 'toc-sub': h.depth === 3 }]}>{h.text}</a>)}</nav><a class="back-top" href="#main">回到顶部 ↑</a></div></aside>
+    <article class="reading-article" data-pagefind-body>
+      <header class="article-header">
+        <div class="eyebrow" data-pagefind-ignore>{note.data.tags.join(' / ')}<span class="article-number">VIDEO → WORDS</span></div>
+        <h1 data-pagefind-meta="title">{note.data.title}</h1>
+        <p class="article-description" data-pagefind-ignore>{note.data.description}</p>
+        <dl class="article-meta" data-pagefind-ignore><div><dt>来源</dt><dd>{note.data.author}</dd></div><div><dt>整理</dt><dd><time datetime={note.data.date}>{note.data.date.replaceAll('-',' / ')}</time></dd></div>{note.data.duration && <div><dt>视频</dt><dd>{note.data.duration}</dd></div>}<div><dt class="sr-only">原视频</dt><dd><a href={note.data.source} target="_blank" rel="noreferrer">观看原视频 ↗</a></dd></div></dl>
+      </header>
+      <details class="mobile-toc" data-pagefind-ignore><summary>章节目录 <span>＋</span></summary><nav>{toc.map(h => <a href={`#${h.slug}`} class:list={{'toc-sub':h.depth===3}}>{h.text}</a>)}</nav></details>
+      <div class="prose"><Content /></div>
+      <footer class="article-end" data-pagefind-ignore><span aria-hidden="true">✳</span><p>读到这里，让想法停留一会儿。</p><a href={note.data.pdf} download>保存一份 PDF ↓</a><a href="/">← 回到 Home</a></footer>
+    </article>
+  </main>
+  <script>
+    const bar = document.querySelector<HTMLElement>('#progress-bar')!;
+    const headings = [...document.querySelectorAll<HTMLElement>('.prose h2, .prose h3')];
+    const links = [...document.querySelectorAll<HTMLAnchorElement>('.toc-link')];
+    let scheduled = false;
+    function update() {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      bar.style.width = `${max > 0 ? Math.min(100, scrollY/max*100) : 100}%`;
+      let active = '';
+      headings.forEach(h => { if(h.getBoundingClientRect().top <= 150) active = h.id; });
+      links.forEach(link => { const matches = decodeURIComponent(link.hash.slice(1)) === active; link.classList.toggle('current', matches); if(matches) link.setAttribute('aria-current','location'); else link.removeAttribute('aria-current'); });
+      scheduled = false;
+    }
+    addEventListener('scroll', () => { if(!scheduled) { scheduled=true; requestAnimationFrame(update); } }, {passive:true});
+    addEventListener('resize', update); update();
+    document.querySelectorAll('.mobile-toc a').forEach(a => a.addEventListener('click', () => { document.querySelector<HTMLDetailsElement>('.mobile-toc')!.open = false; }));
+  </script>
+</Layout>
