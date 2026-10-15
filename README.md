@@ -1,6 +1,6 @@
 # Nailong Share
 
-公开的视频内容阅读网站，不限定主题。Home 卡片直接进入完整正文，阅读页右上角下载原始 PDF。采用 Astro 静态生成与 Pagefind 中文正文搜索，无登录、数据库和在线转换服务。
+公开的视频内容阅读网站，不限定主题。Home 卡片直接进入完整正文，阅读页文末可保存原始 PDF。采用 Astro 静态生成与 Pagefind 中文正文搜索，无登录、数据库和在线转换服务。
 
 ## 本地预览
 
@@ -76,6 +76,6 @@ pdf: "/media/example/note.pdf"
 
 ## 检查
 
-`npm run check` 检查类型，`npm run build` 生成页面和正文搜索索引。`scripts/verify-site.cjs` 可用 Playwright 验证导航、筛选、搜索与章节跳转、主题记忆、PDF 字节、图片链接、正文结构及手机/平板布局；默认从本地 Playwright 加载，或通过 `PLAYWRIGHT_MODULE` 指定安装路径，`CHROMIUM_PATH` 指定 Chromium 路径。运行前先启动生产预览服务器。
+`npm run check` 检查类型，`npm run build` 生成页面和正文搜索索引。`scripts/verify-site.cjs` 可用 Playwright 验证导航、搜索与章节跳转、主题记忆、PDF 字节、图片链接、正文结构及手机/平板布局；默认从本地 Playwright 加载，或通过 `PLAYWRIGHT_MODULE` 指定安装路径，`CHROMIUM_PATH` 指定 Chromium 路径。运行前先启动生产预览服务器。
 
-页面提供深浅配色、桌面章节目录、移动端折叠目录、阅读进度与键盘搜索快捷键 `/`。网站中文字体优先加载 Google Fonts，网络不可用时回退到系统宋体。
+页面默认使用深色配色，提供主题记忆、顶部居中全文搜索及键盘快捷键 `/`。首页显示居中的文章信息流，可切换最近 10 篇笔记；阅读页正文和封面统一居中，最大宽度 680px，窄屏两侧各留 24px；右侧章节目录默认显示短线，悬停或键盘聚焦时上下展开并淡入文字，支持章节跳转和滚动高亮，窄屏隐藏。作者头像和姓名链接至账号主页，文末可保存原始 PDF。全站英文使用本地 Charter，中文使用本地思源宋体（Source Han Serif SC）；代码保留等宽字体，公式使用 KaTeX 字体。

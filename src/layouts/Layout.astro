@@ -1,51 +1,64 @@
 ---
 import '../styles/global.css';
 import 'katex/dist/katex.min.css';
-interface Props { title?: string; description?: string; pdf?: string; }
-const { title = 'Nailong Share', description = '把值得重读的内容，留在这里。', pdf } = Astro.props;
+import Icon from '../components/Icon.astro';
+interface Props { title?: string; description?: string; pdf?: string; home?: boolean; }
+const { title = 'Nailong Share', description = '把值得重读的内容，留在这里。', pdf, home = false } = Astro.props;
 ---
 <!doctype html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="dark" data-page={home ? 'home' : pdf ? 'article' : 'other'}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#252622" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#171717" />
+    <link rel="icon" type="image/png" sizes="256x256" href="/favicon.png" />
+    <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico" />
     <title>{title === 'Nailong Share' ? 'Nailong Share · 留下值得重读的内容' : `${title} · Nailong Share`}</title>
     <script is:inline>
       let savedTheme;
       try { savedTheme = localStorage.getItem('theme'); } catch {}
-      document.documentElement.dataset.theme = savedTheme || 'dark';
+      document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dark';
+      document.querySelector('meta[name="theme-color"]').content = savedTheme === 'light' ? '#ffffff' : '#171717';
     </script>
   </head>
   <body>
     <a class="skip-link" href="#main">跳至正文</a>
     <header class="site-header" data-pagefind-ignore>
-      <a class="brand" href="/" aria-label="Nailong Share Home">
-        <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 2C15 11 12 14 4 16c8 2 11 5 12 14 1-9 4-12 12-14C20 14 17 11 16 2Z" fill="currentColor"/><path d="M25 2v8M21 6h8" stroke="currentColor" stroke-width="1.2"/></svg>
-        <span>Nailong<span class="brand-en">SHARE</span></span>
-      </a>
+      <a class="brand" href="/" aria-label="Nailong Share 首页">Nailong Share</a>
+      <form class="search-form" role="search" action="/">
+        <Icon name="search" />
+        <label class="sr-only" for="search">搜索标题和正文</label>
+        <input id="search" name="q" type="search" placeholder="搜索" autocomplete="off" />
+      </form>
       <nav class="header-actions" aria-label="主导航">
-        <a class="home-link" href="/">Home</a>
-        <button class="theme-toggle" type="button" aria-label="切换至浅色模式" title="切换阅读配色">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
-        </button>
-        {pdf && <a class="download-button" href={pdf} download><span>下载 PDF</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M10 3v9m-3-3 3 3 3-3M4 13v4h12v-4"/></svg></a>}
+        <button class="theme-toggle icon-button" type="button" aria-label="切换至浅色模式" title="切换阅读配色"><Icon name="sun" /></button>
       </nav>
     </header>
     <slot />
-    <footer class="site-footer" data-pagefind-ignore><a href="/">NAILONG SHARE</a><span>留下值得重读的内容。</span><span class="footer-end">慢慢读，慢慢想。 <span aria-hidden="true">✳</span></span></footer>
+    {!home && <footer class="site-footer" data-pagefind-ignore><a href="/">Nailong Share</a><span>留下值得重读的内容。</span></footer>}
     <script>
       const toggle = document.querySelector<HTMLButtonElement>('.theme-toggle')!;
-      function syncLabel() { toggle.setAttribute('aria-label', document.documentElement.dataset.theme === 'dark' ? '切换至浅色模式' : '切换至深色模式'); }
-      syncLabel();
+      const searchInput = document.querySelector<HTMLInputElement>('#search')!;
+      function syncTheme() {
+        const dark = document.documentElement.dataset.theme === 'dark';
+        toggle.setAttribute('aria-label', dark ? '切换至浅色模式' : '切换至深色模式');
+        document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')!.content = dark ? '#171717' : '#ffffff';
+      }
+      syncTheme();
       toggle.addEventListener('click', () => {
         const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
         document.documentElement.dataset.theme = theme;
         try { localStorage.setItem('theme', theme); } catch {}
-        syncLabel();
+        syncTheme();
       });
+      if (document.documentElement.dataset.page !== 'home') {
+        document.addEventListener('keydown', e => {
+          const el = e.target as HTMLElement;
+          if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(el.tagName) && !el.isContentEditable) { e.preventDefault(); searchInput.focus(); }
+          if (e.key === 'Escape' && document.activeElement === searchInput) { searchInput.value = ''; searchInput.blur(); }
+        });
+      }
     </script>
   </body>
 </html>
