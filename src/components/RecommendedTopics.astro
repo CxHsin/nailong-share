@@ -1,0 +1,69 @@
+---
+interface Props { topics: string[] }
+const { topics } = Astro.props;
+const visibleTopics = topics.slice(0, 7);
+const additionalTopics = topics.slice(7);
+---
+<aside class="recommended-topics" aria-labelledby="topics-title">
+  <h2 id="topics-title">推荐主题</h2>
+  <ul class="topic-list">
+    {visibleTopics.map(topic => <li class="topic-pill">
+      <button type="button" class="topic-filter" data-topic-filter={topic} aria-pressed="false" aria-controls="card-grid">{topic}</button>
+      <button type="button" class="topic-follow" data-topic={topic} aria-label={`关注${topic}`} aria-pressed="false">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path class="topic-plus" d="M10 3v14M3 10h14" /><path class="topic-check" d="m4 10 4 4 8-8" /></svg>
+      </button>
+    </li>)}
+  </ul>
+  {additionalTopics.length > 0 && <details class="more-topics">
+    <summary>查看更多主题</summary>
+    <ul class="topic-list">
+      {additionalTopics.map(topic => <li class="topic-pill"><button type="button" class="topic-filter" data-topic-filter={topic} aria-pressed="false" aria-controls="card-grid">{topic}</button></li>)}
+    </ul>
+  </details>}
+</aside>
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.topic-follow');
+  let followed: string[] = [];
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem('followed-topics') || '[]');
+    if (Array.isArray(saved)) followed = saved.filter((topic): topic is string => typeof topic === 'string');
+  } catch { /* Topic controls still work when local storage is unavailable. */ }
+  function update(button: HTMLButtonElement) {
+    const topic = button.dataset.topic!;
+    const selected = followed.includes(topic);
+    button.setAttribute('aria-pressed', String(selected));
+    button.setAttribute('aria-label', `${selected ? '取消关注' : '关注'}${topic}`);
+  }
+  buttons.forEach(button => {
+    update(button);
+    button.addEventListener('click', () => {
+      const topic = button.dataset.topic!;
+      followed = followed.includes(topic) ? followed.filter(value => value !== topic) : [...followed, topic];
+      update(button);
+      try { localStorage.setItem('followed-topics', JSON.stringify(followed)); } catch { /* Keep the current selection in memory. */ }
+    });
+  });
+</script>
+<style>
+  .recommended-topics { min-width: 0; padding: 40px 24px 40px 40px; border-left: 1px solid var(--line); font-family: Arial, 'Microsoft YaHei', sans-serif; }
+  h2 { margin: 0 0 24px; font-size: 16px; font-weight: 600; line-height: 24px; }
+  .topic-list { display: flex; flex-wrap: wrap; gap: 14px 10px; list-style: none; margin: 0; padding: 0; }
+  .topic-pill { display: flex; align-items: stretch; height: 36px; border: 1px solid var(--line); border-radius: 24px; overflow: hidden; }
+  .topic-filter { display: flex; align-items: center; padding: 0 14px; font-size: 14px; line-height: 20px; white-space: nowrap; }
+  .topic-filter:hover, .topic-filter[aria-pressed='true'], .topic-follow:hover { background: var(--surface); }
+  .topic-filter[aria-pressed='true'] { box-shadow: inset 0 -2px var(--ink); }
+  .topic-pill:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .topic-filter:focus-visible, .topic-follow:focus-visible { outline: none; }
+  .topic-follow { display: grid; place-items: center; width: 36px; padding: 0; border-left: 1px solid var(--line); color: var(--muted); }
+  .topic-follow svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1; }
+  .topic-check { display: none; }
+  .topic-follow[aria-pressed='true'] { color: var(--ink); }
+  .topic-follow[aria-pressed='true'] .topic-plus { display: none; }
+  .topic-follow[aria-pressed='true'] .topic-check { display: block; }
+  .more-topics { margin-top: 20px; }
+  summary { width: fit-content; list-style: none; color: var(--muted); font-size: 14px; line-height: 20px; cursor: pointer; }
+  summary::-webkit-details-marker { display: none; }
+  summary:hover { color: var(--ink); }
+  .more-topics .topic-list { margin-top: 20px; }
+  @media (max-width: 1100px) { .recommended-topics { display: none; } }
+</style>
