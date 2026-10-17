@@ -2,21 +2,25 @@
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import Avatar from '../components/Avatar.astro';
+import RecommendedTopics from '../components/RecommendedTopics.astro';
 import { authors } from '../data/authors';
 const notes = (await getCollection('notes')).sort((a,b) => b.data.date.localeCompare(a.data.date));
+const topicCounts = new Map<string, number>();
+notes.forEach(note => note.data.tags.forEach(tag => topicCounts.set(tag, (topicCounts.get(tag) ?? 0) + 1)));
+const topics = [...topicCounts.keys()].sort((a, b) => topicCounts.get(b)! - topicCounts.get(a)!);
 ---
 <Layout home>
   <main id="main" class="home-main">
     <section id="feed" class="library" aria-labelledby="collection-title">
       <h1 id="collection-title" class="sr-only">所有文章</h1>
       <div class="feed-tabs" role="group" aria-label="笔记列表">
-        <button type="button" class="feed-tab active" data-feed="recommended" aria-pressed="true" aria-controls="card-grid">为你推荐</button>
-        <button type="button" class="feed-tab muted" data-feed="recent" aria-pressed="false" aria-controls="card-grid">最近整理</button>
+        <button type="button" class="feed-tab active" data-feed="recommended" aria-pressed="true" aria-controls="card-grid">For you</button>
+        <button type="button" class="feed-tab muted" data-feed="featured" aria-pressed="false" aria-controls="card-grid">Featured</button>
       </div>
       <p id="search-status" class="search-status" aria-live="polite"></p>
       <div id="search-results" class="search-results" hidden></div>
       <div class="card-grid" id="card-grid">
-        {notes.map((note, index) => <article class="note-card">
+        {notes.map((note, index) => <article class="note-card" data-topics={JSON.stringify(note.data.tags)}>
           <div class="card-author"><a class="card-author-link" href={authors[note.data.author]?.url ?? note.data.source} target="_blank" rel="noreferrer"><Avatar name={note.data.author} src={authors[note.data.author]?.avatar} /><span>{note.data.author}</span></a><span class="author-dot">·</span><time datetime={note.data.date}>{note.data.date.replaceAll('-', '.')}</time></div>
           <a class="card-link" href={`/read/${note.id}/`}>
             <div class="card-copy"><h2>{note.data.title}</h2><p class="card-description">{note.data.description}</p></div>
@@ -26,6 +30,7 @@ const notes = (await getCollection('notes')).sort((a,b) => b.data.date.localeCom
       </div>
       <p class="feed-end" aria-live="polite">以上是全部 {notes.length} 篇笔记</p>
     </section>
+    <RecommendedTopics topics={topics} />
   </main>
   <script>
     type Result = { url: string; excerpt: string; meta: { title: string }; sub_results?: { url: string; title: string; excerpt: string }[] };
@@ -37,13 +42,18 @@ const notes = (await getCollection('notes')).sort((a,b) => b.data.date.localeCom
     const tabs = document.querySelectorAll<HTMLButtonElement>('[data-feed]');
     const cards = Array.from(grid.querySelectorAll<HTMLElement>('.note-card'));
     const feedEnd = document.querySelector<HTMLElement>('.feed-end')!;
+    const topicFilters = document.querySelectorAll<HTMLButtonElement>('[data-topic-filter]');
+    const cardTopics = new Map(cards.map(card => [card, JSON.parse(card.dataset.topics!) as string[]]));
+    let activeTopic = '';
     let activeFeed = 'recommended';
     let sequence = 0, timer: ReturnType<typeof setTimeout>;
     let pagefind: Pagefind;
     function showFeed() {
       grid.hidden = false; results.hidden = true; status.textContent = ''; feedEnd.hidden = false;
-      cards.forEach((card, index) => { card.hidden = activeFeed === 'recent' && index >= 10; });
-      feedEnd.textContent = activeFeed === 'recent' ? `以上是最近整理的 ${Math.min(cards.length, 10)} 篇笔记` : `以上是全部 ${cards.length} 篇笔记`;
+      const matching = cards.filter(card => !activeTopic || cardTopics.get(card)!.includes(activeTopic));
+      const visible = activeFeed === 'featured' ? matching.slice(0, 10) : matching;
+      cards.forEach(card => { card.hidden = !visible.includes(card); });
+      feedEnd.textContent = activeTopic ? `「${activeTopic}」共 ${visible.length} 篇笔记` : activeFeed === 'featured' ? `以上是 Featured 的 ${visible.length} 篇笔记` : `以上是全部 ${visible.length} 篇笔记`;
     }
     tabs.forEach(tab => tab.addEventListener('click', () => {
       activeFeed = tab.dataset.feed!;
@@ -54,6 +64,13 @@ const notes = (await getCollection('notes')).sort((a,b) => b.data.date.localeCom
         button.classList.toggle('muted', !selected);
       });
       clearTimeout(timer); ++sequence; input.value = ''; showFeed();
+    }));
+    topicFilters.forEach(button => button.addEventListener('click', () => {
+      activeTopic = activeTopic === button.dataset.topicFilter ? '' : button.dataset.topicFilter!;
+      topicFilters.forEach(filter => filter.setAttribute('aria-pressed', String(filter.dataset.topicFilter === activeTopic)));
+      clearTimeout(timer); ++sequence; input.value = '';
+      history.replaceState(null, '', location.pathname);
+      showFeed();
     }));
     function appendText(parent: HTMLElement, text: string) {
       // Pagefind excerpts contain <mark>; construct only those nodes rather than injecting HTML.
