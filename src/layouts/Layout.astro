@@ -2,8 +2,7 @@
 import '../styles/global.css';
 import 'katex/dist/katex.min.css';
 import Icon from '../components/Icon.astro';
-import { inject } from '@vercel/analytics';
-inject();
+import Analytics from '@vercel/analytics/astro';
 interface Props { title?: string; description?: string; pdf?: string; home?: boolean; }
 const { title = 'Nailong Share', description = '把值得重读的内容，留在这里。', pdf, home = false } = Astro.props;
 ---
@@ -17,6 +16,7 @@ const { title = 'Nailong Share', description = '把值得重读的内容，留�
     <link rel="icon" type="image/png" sizes="256x256" href="/favicon.png" />
     <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico" />
     <title>{title === 'Nailong Share' ? 'Nailong Share · 留下值得重读的内容' : `${title} · Nailong Share`}</title>
+    <Analytics />
     <script is:inline>
       let savedTheme;
       try { savedTheme = localStorage.getItem('theme'); } catch {}
