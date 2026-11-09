@@ -2,6 +2,8 @@
 import '../styles/global.css';
 import 'katex/dist/katex.min.css';
 import Icon from '../components/Icon.astro';
+import { inject } from '@vercel/analytics';
+inject();
 interface Props { title?: string; description?: string; pdf?: string; home?: boolean; }
 const { title = 'Nailong Share', description = '把值得重读的内容，留在这里。', pdf, home = false } = Astro.props;
 ---
